@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+  <title>Keranjang Belanja</title>
+
+  <style>
+    .fade-up {
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp .6s ease forwards;
+    }
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen pb-28">
+
+  <!-- HEADER -->
+  <header class="bg-blue-600 p-4 text-white flex items-center gap-3 shadow-md">
+    <i onclick="location.href='index.html'" class="fa-solid fa-chevron-left text-xl"></i>
+    <h1 class="text-lg font-semibold tracking-wide">Keranjang</h1>
+  </header>
+
+  <main class="max-w-xl mx-auto p-3" id="keranjang">
+
+  </main>
+
+  <!-- Checkout Bar -->
+  <div class="fixed bottom-0 left-0 right-0 bg-white shadow-xl p-4 flex justify-between items-center border-t">
+    <div>
+      <p class="text-xs text-gray-600">Total pembayaran</p>
+      <p class="text-lg font-bold text-blue-600" id="totalhargaProduk">Rp 0</p>
+    </div>
+
+    <button onclick="location.href='checkout.html'" class="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold text-sm shadow-md hover:bg-blue-700 active:scale-95 transition">
+      Checkout
+    </button>
+  </div>
+  <!-- SCRIPTS -->
+  <script src="src/config.js"></script>
+  <script src="src/cart.js"></script>
+  <script>
+    function renderKeranjang(keranjang) {
+  const keranjangContainer = document.getElementById("keranjang");
+  keranjangContainer.innerHTML = "";
+
+  keranjang.data.forEach((item) => {
+    const keranjangItem = document.createElement("div");
+
+    keranjangItem.classList.add("keranjang-item");
+
+    keranjangItem.innerHTML = `
+  <div class="flex gap-3 items-center mb-2">
+    <input type="radio" name="${item.id_produk}"
+           class="w-5 h-5 mt-1" checked>
+  <div class="bg-white rounded-2xl p-3 shadow-sm fade-up mb-3 w-full">
+    <div class="flex gap-3">
+      <img src="${IMG_URL + item.url_produk}"
+          class="w-20 h-20 rounded-xl object-cover shadow-sm">
+
+      <div class="flex flex-col justify-between flex-1">
+        <p class="text-gray-800 text-xs ">
+          ${item.nama_produk}
+        </p>
+       <p class="text-blue-600 font-bold text-base">
+         Rp ${Number(item.harga_produk).toLocaleString("id-ID")}
+       </p>
+      </div>
+
+      <div class="flex items-center gap-2 mt-1">
+        <button onclick="updateQty('${item.id_produk}', 'minus')"
+                  class="w-7 h-7 rounded-full bg-gray-200 text-gray-700 text-lg font-bold">–</button>
+        <p class="font-semibold">${item.qty}</p>
+        <button onclick="updateQty('${item.id_produk}', 'plus')"
+                  class="w-7 h-7 rounded-full bg-blue-600 text-white text-lg font-bold">+</button>
+      </div>
+      </div>
+  </div>
+  </div>
+`;
+
+    keranjangContainer.appendChild(keranjangItem);
+    updateTotal(keranjang.subtotal, 0, 0, 0);
+  });
+}
+  </script>
+</body>
+</html>

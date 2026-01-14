@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Promo Manager</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* Animations */
+    .fade-up { opacity: 0; transform: translateY(14px); animation: fadeUp .55s ease forwards; }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+    .pop { transform: scale(.96); opacity: 0; animation: pop .25s ease forwards; }
+    @keyframes pop { to { transform: scale(1); opacity: 1; } }
+
+    .shimmer {
+      background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.18), rgba(255,255,255,.08));
+      background-size: 200% 100%;
+      animation: shimmer 1.2s linear infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .glass { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <!-- Top Gradient -->
+  <div class="fixed inset-x-0 -top-32 h-64 bg-gradient-to-r from-indigo-500/30 via-fuchsia-500/20 to-cyan-400/20 blur-3xl pointer-events-none"></div>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <section class="fade-up">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">
+            <i class="fa-solid fa-ticket text-indigo-300 mr-2"></i>
+            Promo Manager
+          </h1>
+          <p class="text-slate-300 mt-1">Kelola voucher/promo: tambah, edit, dan lihat data.</p>
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btnRefresh"
+            class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 transition flex items-center gap-2">
+            <i class="fa-solid fa-rotate"></i>
+            Refresh
+          </button>
+
+          <button id="btnOpenAdd"
+            class="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 transition flex items-center gap-2 shadow-lg shadow-indigo-500/20">
+            <i class="fa-solid fa-plus"></i>
+            Tambah Promo
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search + Stats -->
+    <section class="fade-up mt-6" style="animation-delay:.05s">
+      <div class="grid md:grid-cols-3 gap-3">
+        <div class="md:col-span-2 p-4 rounded-2xl bg-white/5 border border-white/10 glass">
+          <label class="text-sm text-slate-300">Cari (nama/kode)</label>
+          <div class="mt-2 flex items-center gap-2 bg-black/20 rounded-xl border border-white/10 px-3 py-2">
+            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+            <input id="q"
+              class="w-full bg-transparent outline-none placeholder:text-slate-500"
+              placeholder="ketik: JAN10, diskon, dll..." />
+            <button id="btnClear"
+              class="text-slate-400 hover:text-slate-100 transition"
+              title="Clear">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white/5 border border-white/10 glass">
+          <div class="text-sm text-slate-300">Total promo</div>
+          <div class="mt-2 flex items-end justify-between">
+            <div class="text-3xl font-black" id="statTotal">0</div>
+            <div class="text-xs text-slate-400">update realtime</div>
+          </div>
+          <div class="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
+            <div id="statBar" class="h-full w-0 bg-indigo-400/70 transition-all"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="fade-up mt-6" style="animation-delay:.1s">
+      <div class="rounded-2xl bg-white/5 border border-white/10 overflow-hidden glass">
+        <div class="px-4 py-3 flex items-center justify-between border-b border-white/10">
+          <div class="font-semibold text-slate-200">
+            <i class="fa-solid fa-table-list text-cyan-300 mr-2"></i>
+            Data Promo
+          </div>
+          <div id="status" class="text-xs text-slate-400">—</div>
+        </div>
+
+        <div class="overflow-auto">
+          <table class="min-w-[980px] w-full text-sm">
+            <thead class="bg-white/5 text-slate-300">
+              <tr>
+                <th class="text-left px-4 py-3">ID</th>
+                <th class="text-left px-4 py-3">Nama</th>
+                <th class="text-left px-4 py-3">Kode</th>
+                <th class="text-left px-4 py-3">Berlaku s/d</th>
+                <th class="text-left px-4 py-3">Diskon</th>
+                <th class="text-left px-4 py-3">Kuota</th>
+                <th class="text-left px-4 py-3">Member</th>
+                <th class="text-left px-4 py-3">Created</th>
+                <th class="text-right px-4 py-3">Aksi</th>
+              </tr>
+            </thead>
+
+            <tbody id="tbody" class="divide-y divide-white/10">
+              <!-- rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skeleton -->
+    <section id="skeleton" class="mt-4 hidden">
+      <div class="grid gap-3">
+        <div class="h-16 rounded-2xl bg-white/5 border border-white/10 shimmer"></div>
+        <div class="h-16 rounded-2xl bg-white/5 border border-white/10 shimmer"></div>
+        <div class="h-16 rounded-2xl bg-white/5 border border-white/10 shimmer"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal Add/Edit -->
+  <div id="modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/60"></div>
+
+    <div class="relative max-w-2xl mx-auto mt-10 md:mt-16 px-4">
+      <div class="pop rounded-2xl bg-slate-900 border border-white/10 shadow-2xl shadow-black/40 overflow-hidden">
+        <div class="px-5 py-4 flex items-center justify-between border-b border-white/10">
+          <div class="font-bold">
+            <i class="fa-solid fa-pen-to-square text-indigo-300 mr-2"></i>
+            <span id="modalTitle">Tambah Promo</span>
+          </div>
+          <button id="btnClose"
+            class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 transition grid place-items-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form id="form" class="p-5">
+          <input type="hidden" id="id_voucher" />
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs text-slate-300">Nama Voucher</label>
+              <div class="mt-2 flex items-center gap-2 bg-black/20 rounded-xl border border-white/10 px-3 py-2">
+                <i class="fa-solid fa-tag text-slate-400"></i>
+                <input id="nama_voucher" class="w-full bg-transparent outline-none" placeholder="Diskon Januari" required />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Kode Voucher</label>
+              <div class="mt-2 flex items-center gap-2 bg-black/20 rounded-xl border border-white/10 px-3 py-2">
+                <i class="fa-solid fa-qrcode text-slate-400"></i>
+                <input id="kode_voucher" class="w-full bg-transparent outline-none uppercase" placeholder="JAN10" required />
+              </div>
+              <p class="text-[11px] text-slate-500 mt-1">Disarankan huruf besar, tanpa spasi.</p>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Berlaku s/d (elig_voucher)</label>
+              <div class="mt-2 flex items-center gap-2 bg-black/20 rounded-xl border border-white/10 px-3 py-2">
+                <i class="fa-solid fa-calendar-days text-slate-400"></i>
+                <input id="elig_voucher" type="date" class="w-full bg-transparent outline-none" required />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Created At</label>
+              <div class="mt-2 flex items-center gap-2 bg-black/20 rounded-xl border border-white/10 px-3 py-2">
+                <i class="fa-solid fa-clock text-slate-400"></i>
+                <input id="created_at" type="date" class="w-full bg-transparent outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Total Diskon (angka)</label>
+              <div class="mt-2 flex items-center gap-2 bg-black/20 rounded-xl border border-white/10 px-3 py-2">
+                <i class="fa-solid fa-percent text-slate-400"></i>
+                <input id="total_diskon" type="number" min="0" class="w-full bg-transparent outline-none" value="0" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-300">Total Voucher / Kuota</label>
+              <div class="mt-2 flex items-center gap-2 bg-black/20 rounded-xl border border-white/10 px-3 py-2">
+                <i class="fa-solid fa-layer-group text-slate-400"></i>
+                <input id="total_voucher" type="number" min="0" class="w-full bg-transparent outline-none" value="0" />
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-xs text-slate-300">Member Only</label>
+              <div class="mt-2 flex items-center justify-between bg-black/20 rounded-xl border border-white/10 px-3 py-3">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-crown text-yellow-300"></i>
+                  <span class="text-sm text-slate-200">Aktifkan jika hanya untuk member</span>
+                </div>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                  <input id="member_only" type="checkbox" class="hidden peer" />
+                  <span class="w-12 h-7 bg-white/10 border border-white/10 rounded-full relative transition peer-checked:bg-indigo-500/60">
+                    <span class="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition peer-checked:translate-x-5"></span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 flex flex-col md:flex-row gap-3 md:justify-end">
+            <button type="button" id="btnCancel"
+              class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 transition">
+              <i class="fa-solid fa-ban mr-2"></i>Batal
+            </button>
+
+            <button type="submit" id="btnSave"
+              class="px-5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 transition shadow-lg shadow-indigo-500/20">
+              <i class="fa-solid fa-floppy-disk mr-2"></i>
+              <span id="btnSaveText">Simpan</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================
+    // CONFIG
+    // ==========================
+    const API_URL = "https://hawilpay.my.id/API/PROMO/promo.php"; // <-- ganti sesuai lokasi file API lo
+
+    // ==========================
+    // HELPERS
+    // ==========================
+    const $ = (q) => document.querySelector(q);
+    const tbody = $("#tbody");
+    const skeleton = $("#skeleton");
+    const statusEl = $("#status");
+
+    const toast = (icon, title) => {
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon,
+        title,
+        showConfirmButton: false,
+        timer: 1800,
+        timerProgressBar: true,
+      });
+    };
+
+    const money = (n) => {
+      const x = Number(n || 0);
+      return "Rp " + x.toLocaleString("id-ID");
+    };
+
+    const setLoading = (v) => {
+      skeleton.classList.toggle("hidden", !v);
+      statusEl.textContent = v ? "Mengambil data..." : "Siap";
+    };
+
+    const openModal = (mode, row = null) => {
+      $("#modal").classList.remove("hidden");
+      $("#modalTitle").textContent = mode === "add" ? "Tambah Promo" : "Edit Promo";
+      $("#btnSaveText").textContent = mode === "add" ? "Simpan" : "Update";
+
+      // reset
+      $("#form").reset();
+      $("#id_voucher").value = "";
+
+      // default dates
+      const today = new Date().toISOString().slice(0, 10);
+      $("#created_at").value = today;
+
+      if (row) {
+        $("#id_voucher").value = row.id_voucher;
+        $("#nama_voucher").value = row.nama_voucher ?? "";
+        $("#kode_voucher").value = row.kode_voucher ?? "";
+        $("#elig_voucher").value = row.elig_voucher ?? today;
+        $("#total_diskon").value = row.total_diskon ?? 0;
+        $("#total_voucher").value = row.total_voucher ?? 0;
+        $("#member_only").checked = Number(row.member_only) === 1;
+        $("#created_at").value = row.created_at ?? today;
+      }
+    };
+
+    const closeModal = () => $("#modal").classList.add("hidden");
+
+    // ==========================
+    // API
+    // ==========================
+    async function apiGetAll() {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_URL}?action=get`);
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.msg || "Gagal ambil data");
+        return json.data || [];
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function apiCreate(payload) {
+      const res = await fetch(`${API_URL}?action=create`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.msg || "Gagal create");
+      return json;
+    }
+
+    async function apiUpdate(id, payload) {
+      const res = await fetch(`${API_URL}?action=update&id_voucher=${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.msg || "Gagal update");
+      return json;
+    }
+
+    // ==========================
+    // RENDER
+    // ==========================
+    let RAW = [];
+
+    function render(list) {
+      const q = ($("#q").value || "").trim().toLowerCase();
+      const filtered = q
+        ? list.filter(r =>
+            String(r.nama_voucher || "").toLowerCase().includes(q) ||
+            String(r.kode_voucher || "").toLowerCase().includes(q)
+          )
+        : list;
+
+      $("#statTotal").textContent = filtered.length;
+      $("#statBar").style.width = Math.min(100, filtered.length * 8) + "%";
+
+      if (!filtered.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="px-4 py-10 text-center text-slate-400">
+              <i class="fa-regular fa-face-grin-beam-sweat text-2xl mb-2"></i>
+              <div>Data kosong / tidak ditemukan.</div>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((r, idx) => `
+        <tr class="hover:bg-white/5 transition">
+          <td class="px-4 py-3 text-slate-200 font-semibold">${r.id_voucher}</td>
+          <td class="px-4 py-3">
+            <div class="font-semibold text-slate-100">${escapeHtml(r.nama_voucher)}</div>
+            <div class="text-xs text-slate-400">#${idx + 1} • ${Number(r.member_only) ? "Member" : "Umum"}</div>
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-indigo-500/15 border border-indigo-400/20 text-indigo-200">
+              <i class="fa-solid fa-ticket"></i>
+              ${escapeHtml(r.kode_voucher)}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-slate-300">${r.elig_voucher || "-"}</td>
+          <td class="px-4 py-3 text-slate-200 font-semibold">${money(r.total_diskon)}</td>
+          <td class="px-4 py-3 text-slate-300">${Number(r.total_voucher || 0).toLocaleString("id-ID")}</td>
+          <td class="px-4 py-3">
+            ${Number(r.member_only) ? `<span class="px-2 py-1 rounded-lg bg-yellow-500/15 border border-yellow-400/20 text-yellow-200 text-xs">
+              <i class="fa-solid fa-crown mr-1"></i>Member
+            </span>` : `<span class="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/20 text-emerald-200 text-xs">
+              <i class="fa-solid fa-users mr-1"></i>Umum
+            </span>`}
+          </td>
+          <td class="px-4 py-3 text-slate-400">${r.created_at || "-"}</td>
+          <td class="px-4 py-3 text-right">
+            <button class="btnEdit px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 transition"
+                    data-id="${r.id_voucher}">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </td>
+        </tr>
+      `).join("");
+
+      // attach edit events
+      document.querySelectorAll(".btnEdit").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          const row = RAW.find(x => String(x.id_voucher) === String(id));
+          openModal("edit", row);
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // ==========================
+    // INIT
+    // ==========================
+    async function refresh() {
+      try {
+        statusEl.textContent = "Loading...";
+        RAW = await apiGetAll();
+        render(RAW);
+        statusEl.textContent = `Terakhir update: ${new Date().toLocaleString("id-ID")}`;
+      } catch (e) {
+        console.error(e);
+        statusEl.textContent = "Gagal ambil data";
+        Swal.fire({
+          icon: "error",
+          title: "Gagal mengambil data",
+          text: e.message || "Coba cek API_URL / server",
+          background: "#0b1220",
+          color: "#e2e8f0",
+          confirmButtonColor: "#6366f1",
+        });
+      }
+    }
+
+    // ==========================
+    // EVENTS
+    // ==========================
+    $("#btnRefresh").addEventListener("click", refresh);
+
+    $("#btnOpenAdd").addEventListener("click", () => openModal("add"));
+
+    $("#btnClose").addEventListener("click", closeModal);
+    $("#btnCancel").addEventListener("click", closeModal);
+
+    // close modal when click outside card
+    $("#modal").addEventListener("click", (e) => {
+      if (e.target === $("#modal").querySelector("div.absolute")) closeModal();
+    });
+
+    $("#q").addEventListener("input", () => render(RAW));
+    $("#btnClear").addEventListener("click", () => {
+      $("#q").value = "";
+      render(RAW);
+    });
+
+    // Submit Add/Edit
+    $("#form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const id = $("#id_voucher").value.trim();
+
+      const payload = {
+        nama_voucher: $("#nama_voucher").value.trim(),
+        kode_voucher: $("#kode_voucher").value.trim().toUpperCase(),
+        elig_voucher: $("#elig_voucher").value,
+        total_diskon: Number($("#total_diskon").value || 0),
+        total_voucher: Number($("#total_voucher").value || 0),
+        member_only: $("#member_only").checked ? 1 : 0,
+        created_at: $("#created_at").value || new Date().toISOString().slice(0, 10),
+      };
+
+      // simple validation
+      if (!payload.nama_voucher || !payload.kode_voucher) {
+        toast("warning", "Nama & kode voucher wajib diisi");
+        return;
+      }
+      if (!payload.elig_voucher) {
+        toast("warning", "Tanggal berlaku (elig_voucher) wajib diisi");
+        return;
+      }
+
+      const isEdit = !!id;
+
+      const confirm = await Swal.fire({
+        icon: "question",
+        title: isEdit ? "Update promo ini?" : "Tambah promo baru?",
+        text: isEdit ? `ID: ${id}` : `Kode: ${payload.kode_voucher}`,
+        showCancelButton: true,
+        confirmButtonText: isEdit ? "Ya, update" : "Ya, simpan",
+        cancelButtonText: "Batal",
+        background: "#0b1220",
+        color: "#e2e8f0",
+        confirmButtonColor: "#6366f1",
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      try {
+        $("#btnSave").disabled = true;
+        $("#btnSave").classList.add("opacity-70");
+
+        if (isEdit) {
+          await apiUpdate(id, payload);
+          toast("success", "Promo berhasil diupdate");
+        } else {
+          await apiCreate(payload);
+          toast("success", "Promo berhasil dibuat");
+        }
+
+        closeModal();
+        await refresh();
+      } catch (err) {
+        console.error(err);
+        Swal.fire({
+          icon: "error",
+          title: "Gagal menyimpan",
+          text: err.message || "Error",
+          background: "#0b1220",
+          color: "#e2e8f0",
+          confirmButtonColor: "#6366f1",
+        });
+      } finally {
+        $("#btnSave").disabled = false;
+        $("#btnSave").classList.remove("opacity-70");
+      }
+    });
+
+    // GO!
+    refresh();
+  </script>
+</body>
+</html>
